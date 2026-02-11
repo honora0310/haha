@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧧 2026 尾牙大抽獎 🧧</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --red: #c0392b; --gold: #f1c40f; --dark-red: #4a0404; --white: #ffffff; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: var(--dark-red); color: white; font-family: "Microsoft JhengHei", sans-serif; overflow: hidden; }
+        
+        /* 燈籠搖曳動畫 */
+        .lantern-box { position: fixed; top: -20px; width: 100px; z-index: 5; pointer-events: none; }
+        .lantern-left { left: 5%; animation: swing 3s ease-in-out infinite alternate; transform-origin: top center; }
+        .lantern-right { right: 5%; animation: swing 3.5s ease-in-out infinite alternate-reverse; transform-origin: top center; }
+        .lantern { width: 80px; height: 100px; background: #e74c3c; border-radius: 40px / 50px; position: relative; border: 2px solid #5d0c0c; box-shadow: 0 0 30px rgba(231, 76, 60, 0.5); }
+        .lantern::before { content: ""; position: absolute; top: -10px; left: 20px; width: 40px; height: 10px; background: var(--gold); border-radius: 5px; }
+        .lantern::after { content: ""; position: absolute; bottom: -10px; left: 20px; width: 40px; height: 10px; background: var(--gold); border-radius: 5px; }
+        .tassel { position: absolute; bottom: -40px; left: 50%; width: 4px; height: 35px; background: var(--gold); transform: translateX(-50%); }
+
+        @keyframes swing { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+
+        /* 菱形春聯系統 */
+        .couplet-wrapper {
+            position: fixed; top: -120px; z-index: 1; pointer-events: none;
+            animation: fall linear forwards;
+        }
+
+        .couplet-diamond {
+            width: 50px; height: 50px; background: #d32f2f; border: 2px solid var(--gold);
+            transform: rotate(45deg); /* 旋轉成菱形 */
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.4);
+        }
+
+        .couplet-text {
+            transform: rotate(-45deg); /* 文字轉回來 */
+            color: var(--gold); font-size: 1.8rem; font-weight: bold;
+            user-select: none;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+            25% { transform: translateY(25vh) translateX(15px) rotate(10deg); }
+            50% { transform: translateY(50vh) translateX(-15px) rotate(-10deg); }
+            75% { transform: translateY(75vh) translateX(15px) rotate(10deg); }
+            100% { transform: translateY(115vh) translateX(0) rotate(0deg); opacity: 0.4; }
+        }
+
+        /* 介面樣式 */
+        .page { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; width: 100%; position: absolute; transition: 0.5s; z-index: 10; }
+        .hidden { display: none !important; }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); 
+            padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); 
+            width: 90%; max-width: 500px; text-align: center; max-height: 80vh; overflow-y: auto;
+        }
+
+        .avatar-circle { width: 60px; height: 60px; object-fit: cover; border-radius: 50%; border: 2px solid var(--gold); cursor: pointer; }
+        .large-winner-avatar { width: 150px; height: 150px; border-radius: 50%; border: 5px solid var(--gold); margin: 20px auto; display: block; }
+        .member-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 10px; }
+        input[type="text"] { flex: 1; padding: 10px; border-radius: 5px; border: none; font-size: 16px; }
+        .btn { background: var(--gold); color: #000; border: none; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 1.1rem; margin-top: 15px; }
+        .btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .prize-title { font-size: 1.8rem; color: var(--gold); margin: 20px 0; font-weight: bold; }
+        .winner-name { font-size: 2.5rem; color: white; text-shadow: 0 0 10px var(--gold); }
+        .summary-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 10px 0; text-align: left;}
+    </style>
+</head>
+<body>
+
+    <div class="lantern-box lantern-left"><div class="lantern"><div class="tassel"></div></div></div>
+    <div class="lantern-box lantern-right"><div class="lantern"><div class="tassel"></div></div></div>
+
+    <div id="page1" class="page">
+        <div class="glass-card">
+            <h1 style="color: var(--gold); margin-top:0;">🧧 2026 尾牙簽到</h1>
+            <div id="memberContainer">
+                <div class="member-row">
+                    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><circle cx='50' cy='50' r='40'/></svg>" class="avatar-circle" onclick="triggerFile(this)">
+                    <input type="text" placeholder="輸入成員姓名">
+                    <input type="file" hidden accept="image/*" onchange="previewImg(this)">
+                </div>
+            </div>
+            <button class="btn" style="background:rgba(255,255,255,0.2); color:white" onclick="addRow()">➕ 新增成員</button>
+            <button class="btn" onclick="initLottery()">進入抽獎流程 ➔</button>
+        </div>
+    </div>
+
+    <div id="page2" class="page hidden">
+        <div class="glass-card">
+            <h2 style="opacity: 0.8;">下一位幸運兒將獲得...</h2>
+            <div id="prizeLabel" class="prize-title"></div>
+            <div style="font-size: 80px; margin: 20px 0;">🧧</div>
+            <button class="btn" onclick="drawProcess()">開始抽取</button>
+        </div>
+    </div>
+
+    <div id="page3" class="page hidden">
+        <div class="glass-card">
+            <h1 style="color: var(--gold);">🎊 恭喜得獎 🎊</h1>
+            <img id="winnerAvatar" class="large-winner-avatar">
+            <div id="winnerName" class="winner-name"></div>
+            <div id="wonPrize" style="margin-top:10px; font-size:1.4rem; color: var(--gold); font-weight: bold;"></div>
+            <button id="nextBtn" class="btn" onclick="toNextRound()">繼續下一個獎項</button>
+        </div>
+    </div>
+
+    <div id="page4" class="page hidden">
+        <div class="glass-card">
+            <h1 style="color: var(--gold);">🏆 得獎榜 🏆</h1>
+            <div id="finalSummary"></div>
+            <button class="btn" onclick="location.reload()">重新開始</button>
+        </div>
+    </div>
+
+    <script>
+        const prizeConfig = ["🧧 肆獎：2,000 元", "🥉 參獎：3,000 元", "🥈 貳獎：5,000 元", "🥇 壹獎：10,000 元"];
+        let members = [], winners = [], currentPrizeIndex = 0;
+
+        // 菱形春聯飄落 (隨機大小版)
+        function createCouplet() {
+            const chars = ["福", "春", "吉", "財", "旺", "發"];
+            const wrapper = document.createElement("div");
+            wrapper.className = "couplet-wrapper";
+            
+            // 加入隨機大小：0.5倍 到 1.5倍
+            const randomScale = Math.random() * 1.0 + 0.5;
+            wrapper.style.transform = `scale(${randomScale})`;
+            
+            const diamond = document.createElement("div");
+            diamond.className = "couplet-diamond";
+            
+            const text = document.createElement("div");
+            text.className = "couplet-text";
+            text.innerText = chars[Math.floor(Math.random() * chars.length)];
+            
+            diamond.appendChild(text);
+            wrapper.appendChild(diamond);
+            
+            wrapper.style.left = Math.random() * 100 + "vw";
+            const duration = Math.random() * 3 + 4; // 飄落速度 4-7 秒
+            wrapper.style.animationDuration = duration + "s";
+            
+            document.body.appendChild(wrapper);
+            setTimeout(() => wrapper.remove(), duration * 1000);
+        }
+        setInterval(createCouplet, 700);
+
+        function triggerFile(el) { el.parentElement.querySelector('input[type="file"]').click(); }
+        function previewImg(input) {
+            const reader = new FileReader();
+            reader.onload = e => { input.parentElement.querySelector('img').src = e.target.result; };
+            if(input.files[0]) reader.readAsDataURL(input.files[0]);
+        }
+        function addRow() {
+            const div = document.createElement('div');
+            div.className = 'member-row';
+            div.innerHTML = `<img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><circle cx='50' cy='50' r='40'/></svg>" class="avatar-circle" onclick="triggerFile(this)"><input type="text" placeholder="成員姓名"><input type="file" hidden accept="image/*" onchange="previewImg(this)">`;
+            document.getElementById('memberContainer').appendChild(div);
+            document.querySelector('.glass-card').scrollTop = 9999;
+        }
+
+        function initLottery() {
+            const rows = document.querySelectorAll('.member-row');
+            members = [];
+            rows.forEach(r => {
+                const name = r.querySelector('input[type="text"]').value.trim();
+                const img = r.querySelector('img').src;
+                if(name) members.push({ name, img });
+            });
+            if(members.length < 4) return alert("成員至少要 4 位喔！");
+            showPage(2);
+            document.getElementById('prizeLabel').innerText = prizeConfig[currentPrizeIndex];
+        }
+
+        function drawProcess() {
+            const luckIndex = Math.floor(Math.random() * members.length);
+            const winner = members.splice(luckIndex, 1)[0];
+            const prize = prizeConfig[currentPrizeIndex];
+            winners.push({ prize, ...winner });
+
+            document.getElementById('winnerAvatar').src = winner.img;
+            document.getElementById('winnerName').innerText = winner.name;
+            document.getElementById('wonPrize').innerText = prize;
+            document.getElementById('nextBtn').innerText = currentPrizeIndex === 3 ? "查看總榜" : "下一個獎項";
+            
+            showPage(3);
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+
+        function toNextRound() {
+            if(++currentPrizeIndex < 4) {
+                document.getElementById('prizeLabel').innerText = prizeConfig[currentPrizeIndex];
+                showPage(2);
+            } else {
+                const summary = document.getElementById('finalSummary');
+                summary.innerHTML = "";
+                [...winners].reverse().forEach(w => {
+                    summary.innerHTML += `<div class="summary-item"><div><img src="${w.img}" style="width:40px;height:40px;border-radius:50%"> ${w.name}</div><b style="color:var(--gold)">${w.prize.split('：')[0]}</b></div>`;
+                });
+                showPage(4);
+            }
+        }
+
+        function showPage(n) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById('page' + n).classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
